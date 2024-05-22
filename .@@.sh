@@ -7,7 +7,6 @@
 # sudo yum install epel-release
 # touch .@@.sh in ~/
 
-
 #用llama3 並建立modelfile 名稱為 aiagent
 
 # FROM llama3
@@ -23,7 +22,6 @@
 # 3. Your recommand linux instruction outputs or code must be embedded between  |output| and |/output| for my code to be able to interpret.
 # 4. Do not generate any description and program output sample.
 # '''
-
 
 # FROM llama3
 # SYSTEM """1. You are a linux professional expert that knows python and other programming language commands very well especially in bash script.
@@ -47,26 +45,55 @@
 function aiagent() {
     # Initialize an empty string to store concatenated arguments
     args_string=""
-    
+
     # Iterate over all arguments passed to the script
-    for arg in "$*"
-    do
+    for arg in "$*"; do
         # Append each argument to the string, separated by a space
         args_string="$args_string $arg"
     done
-    echo "The message is: $args_string"
-    parameter_curl='{
+    #echo "The message is: $args_string"
+
+    if [ ! -f \"~/.ollamahis.txt\" ]; then
+        echo ".ollamahis.txt not found create one"
+        touch ~/.ollamahis.txt
+    fi
+
+    # parameter_curl='{
+    #     "model": "aiagent",
+    #     "messages": [
+    #         {
+    #             "role": "user",
+    #             "content": "ZmbLuZw45ZLbnBg8"
+    #         }
+    #     ],
+    #     "stream": false
+    # }'
+
+    parameter_prefix='{
         "model": "aiagent",
-        "messages": [
-            {
+        "messages": ['
+
+    parameter_body=' {
                 "role": "user",
-                "content": "target"
-            }
-        ],
+                "content": "ZmbLuZw45ZLbnBg8"
+            }'
+    parameter_body="${parameter_body//\"ZmbLuZw45ZLbnBg8\"/\"$args_string\"}"
+    parameter_body="$(cat ~/.ollamahis.txt) ${parameter_body}"
+    # echo $parameter_body >>~/.ollamahis.txt
+    parameter_suffix='],
         "stream": false
     }'
-    parameter_curl="${parameter_curl//\"target\"/\"$args_string\"}"
-    curl -s http://localhost:11434/api/chat -d "${parameter_curl}" | jq .message.content | xargs -0 echo -e
+    parameter_curl="$parameter_prefix $parameter_body $parameter_suffix"
+
+    # {
+    #   "role": "assistant",
+    #   "content": "why is the sky blue?"
+    # }
+
+    agentrespond=$(curl -s http://localhost:11434/api/chat -d "${parameter_curl}" | jq .message.content)
+    echo ${parameter_body} >~/.ollamahis.txt
+    echo ",{ \"role\":\"assistant\", \"content\": ${agentrespond} }, " >>~/.ollamahis.txt
+    echo $agentrespond | xargs -0 echo -e
 }
 
 # Check if a parameter is passed
@@ -79,7 +106,6 @@ fi
 aiagent "$*"
 
 # add hot key to home folder's .bashrc
-if [ $(cat ~/.bashrc|grep @@.sh|wc -l) -eq 0 ];
-then
-    echo alias @=\'~/.@@.sh\' >> ~/.bashrc
+if [ $(cat ~/.bashrc | grep @@.sh | wc -l) -eq 0 ]; then
+    echo alias @=\'~/.@@.sh\' >>~/.bashrc
 fi
