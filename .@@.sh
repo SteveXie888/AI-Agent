@@ -54,7 +54,7 @@ function aiagent() {
     #echo "The message is: $args_string"
 
     if [ ! -f \"~/.ollamahis.txt\" ]; then
-        echo ".ollamahis.txt not found create one"
+        # echo ".ollamahis.txt not found create one"
         touch ~/.ollamahis.txt
     fi
 
