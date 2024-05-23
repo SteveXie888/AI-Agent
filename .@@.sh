@@ -2,13 +2,13 @@
 install() {
     #先安裝docker ollama 和 open web ui
     sudo yum remove docker \
-        docker-client \
-        docker-client-latest \
-        docker-common \
-        docker-latest \
-        docker-latest-logrotate \
-        docker-logrotate \
-        docker-engine
+    docker-client \
+    docker-client-latest \
+    docker-common \
+    docker-latest \
+    docker-latest-logrotate \
+    docker-logrotate \
+    docker-engine
     sudo yum install -y yum-utils
     sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
     sudo yum install docker -y
@@ -21,7 +21,7 @@ install() {
     sudo curl -fsSL https://ollama.com/install.sh | sh
     echo "Please enter using GPU or not (y or n):"
     read bGPUsupported
-
+    
     if [ "$bGPUsupported" == "y" ]; then
         # GPU supported
         sudo docker run -d --network=host --gpus=all -v ollama:/root/.ollama -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:ollama
@@ -29,18 +29,20 @@ install() {
         # CPU supported
         sudo docker run -d --network=host -v ollama:/root/.ollama -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:ollama
     fi
-
+    
     sudo chmod 755 ~/.@@.sh
-
+    
     # add hot key to home folder's .bashrc
     if [ $(cat ~/.bashrc | grep @@.sh | wc -l) -eq 0 ]; then
         echo alias @=\'~/.@@.sh\' >>~/.bashrc
     fi
-
-    # curl http://localhost:11434/api/create -d '{
-    #   "name": "aiagent111",
-    #   "modelfile": "FROM llama3 PARAMETER temperature 1 PARAMETER num_ctx 4096 PARAMETER num_thread 8"
-    # }'
+    
+    curl http://localhost:11434/api/pull -d '{
+        "name": "llama3"
+    }'
+    
+    curl http://localhost:11434/api/create -d '{"name": "aiagent","modelfile": "FROM llama3\nSYSTEM \"\"\"1. You are a linux professional expert that knows python and other programming language commands very well especially in bash script.\n2. All you generated commands should be able to execute directly in bash command line environment without prompting a yes or no confirming infomation.\n3. Your recommand linux instruction outputs or code must be embedded between  output and endoutput for my code to be able to interpret.\n4. Do not generate any description and program output sample.\"\"\"\nPARAMETER mirostat 2\nPARAMETER mirostat_tau 3\nPARAMETER temperature 0.5\nPARAMETER num_ctx 4096\nPARAMETER num_thread 8\nPARAMETER num_predict 256\nPARAMETER num_keep 24\nPARAMETER stop '\<\|start_header_id\|\>'\nPARAMETER stop '\<\|end_header_id\|\>'\nPARAMETER stop '\<\|eot_id\|\>'"}'
+    
 }
 #先安裝docker ollama 和 open web ui
 # sudo curl -fsSL https://ollama.com/install.sh | sh
@@ -75,7 +77,7 @@ install() {
 # PARAMETER temperature 0.5
 # PARAMETER num_ctx 4096
 # PARAMETER num_thread 8
-# PARAMETER num_predict 100
+# PARAMETER num_predict 256
 # PARAMETER num_keep 24
 # PARAMETER stop "<|start_header_id|>"
 # PARAMETER stop "<|end_header_id|>"
@@ -87,19 +89,19 @@ install() {
 function aiagent() {
     # Initialize an empty string to store concatenated arguments
     args_string=""
-
+    
     # Iterate over all arguments passed to the script
     for arg in "$*"; do
         # Append each argument to the string, separated by a space
         args_string="$args_string $arg"
     done
     #echo "The message is: $args_string"
-
+    
     if [ ! -f \"~/.ollamahis.txt\" ]; then
         # echo ".ollamahis.txt not found create one"
         touch ~/.ollamahis.txt
     fi
-
+    
     # parameter_curl='{
     #     "model": "aiagent",
     #     "messages": [
@@ -110,28 +112,28 @@ function aiagent() {
     #     ],
     #     "stream": false
     # }'
-
+    
     parameter_prefix='{
         "model": "aiagent",
         "messages": ['
-
-    parameter_body=' {
+            
+            parameter_body=' {
                 "role": "user",
                 "content": "ZmbLuZw45ZLbnBg8"
             }'
-    parameter_body="${parameter_body//\"ZmbLuZw45ZLbnBg8\"/\"$args_string\"}"
-    parameter_body="$(cat ~/.ollamahis.txt) ${parameter_body}"
-    # echo $parameter_body >>~/.ollamahis.txt
-    parameter_suffix='],
+            parameter_body="${parameter_body//\"ZmbLuZw45ZLbnBg8\"/\"$args_string\"}"
+            parameter_body="$(cat ~/.ollamahis.txt) ${parameter_body}"
+            # echo $parameter_body >>~/.ollamahis.txt
+        parameter_suffix='],
         "stream": false
     }'
     parameter_curl="$parameter_prefix $parameter_body $parameter_suffix"
-
+    
     # {
     #   "role": "assistant",
     #   "content": "why is the sky blue?"
     # }
-
+    
     agentrespond=$(curl -s http://localhost:11434/api/chat -d "${parameter_curl}" | jq .message.content)
     echo ${parameter_body} >~/.ollamahis.txt
     echo ",{ \"role\":\"assistant\", \"content\": ${agentrespond} }, " >>~/.ollamahis.txt
